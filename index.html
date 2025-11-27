@@ -1549,16 +1549,24 @@
         });
         selectCell.appendChild(select);
 
-        // Affichage de l'effet complet sous le select
+        // Affichage de l'indicateur de position sous le select
+        const posIndicator = document.createElement("div");
+        posIndicator.dataset.posIndicator = String(i);
+        posIndicator.style.fontSize = "0.75rem";
+        posIndicator.style.minHeight = "1em";
+        selectCell.appendChild(posIndicator);
+
+        // Affichage de l'effet complet sous le select (plus gros et visible)
         const effectDisplay = document.createElement("div");
         effectDisplay.dataset.effectDisplay = String(i);
-        effectDisplay.style.fontSize = "0.72rem";
-        effectDisplay.style.color = "#9ca3af";
-        effectDisplay.style.fontStyle = "italic";
+        effectDisplay.style.fontSize = "0.85rem";
+        effectDisplay.style.color = "#e5e7eb";
+        effectDisplay.style.fontWeight = "500";
         effectDisplay.style.minHeight = "1em";
+        effectDisplay.style.marginTop = "2px";
         selectCell.appendChild(effectDisplay);
 
-        // position info
+        // position info (maintenant juste les carrés, sans le texte)
         const posCell = document.createElement("div");
         posCell.className = "pos-indicator";
         posCell.dataset.posInfo = String(i);
@@ -1625,18 +1633,18 @@
           "pos-A";
         html += `<span class="pos-square ${cls}" title="Position ${i + 1}"></span>`;
       }
+      return html;
+    }
+
+    function getPositionBonusText(pattern, index) {
       const bonus = getPositionBonus(pattern, index);
-      let bonusLabel = "";
-      let bonusStyle = "margin-left:4px; font-size:0.7rem; color:#9ca3af;";
       if (bonus === 1) {
-        bonusLabel = " 🌟 PARFAIT ! +1⭐";
-        bonusStyle = "margin-left:4px; font-size:0.75rem; color:#22c55e; font-weight:600;";
+        return '<span style="color:#22c55e; font-weight:700;">🌟 PARFAIT ! +1⭐</span>';
       }
       if (bonus === -2) {
-        bonusLabel = " ⚠️ –2⭐";
-        bonusStyle = "margin-left:4px; font-size:0.7rem; color:#ef4444; font-weight:600;";
+        return '<span style="color:#ef4444; font-weight:700;">⚠️ INTERDIT ! –2⭐</span>';
       }
-      return html + `<span style="${bonusStyle}">${bonusLabel}</span>`;
+      return "";
     }
 
     function recalcTotals() {
@@ -1666,6 +1674,7 @@
       selects.forEach((sel, index) => {
         const cardId = sel.value;
         const posInfo = document.querySelector(`[data-pos-info="${index}"]`);
+        const posIndicator = document.querySelector(`[data-pos-indicator="${index}"]`);
         const effectInput = document.querySelector(`input[data-effect="${index}"]`);
         const gloryInput = document.querySelector(`input[data-glory="${index}"]`);
         const miscInput = document.querySelector(`input[data-misc="${index}"]`);
@@ -1676,8 +1685,11 @@
         if (cardId) {
           const card = cards.find((c) => c.id === cardId);
           if (card) {
-            // update position indicator
+            // update position indicator (juste les carrés)
             posInfo.innerHTML = renderPositionIndicator(card.positionPattern, index);
+
+            // update position bonus text (sous le select)
+            posIndicator.innerHTML = getPositionBonusText(card.positionPattern, index);
 
             // CALCUL AUTOMATIQUE des étoiles d'effet
             effectStars = calculateEffectStars(card, index, selectedCards, tokens);
@@ -1693,6 +1705,7 @@
           }
         } else {
           posInfo.innerHTML = "";
+          posIndicator.innerHTML = "";
           effectInput.value = 0;
         }
 
