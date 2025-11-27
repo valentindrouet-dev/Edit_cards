@@ -522,14 +522,23 @@
                   <option value="🧡">🧡 Actrice Comédie</option>
                 </select>
               </div>
+            </div>
+
+            <div class="inline">
               <div class="field-group">
-                <label>Bonus</label>
-                <select id="card-bonus">
-                  <option value="">Aucun</option>
+                <label>Icône</label>
+                <select id="card-icon">
+                  <option value="">Aucune</option>
                   <option value="☠️">☠️ Mort</option>
                   <option value="🤡">🤡 Gag</option>
                   <option value="💘">💘 Romance</option>
                   <option value="🎵">🎵 Musique</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label>Bonus points</label>
+                <select id="card-bonus-points">
+                  <option value="">Aucun</option>
                   <option value="🍿">🍿 +1 Box-office</option>
                   <option value="🎬">🎬 +1 Critique</option>
                 </select>
@@ -987,10 +996,10 @@
     }
 
     /**
-     * Compte les cartes avec un bonus spécifique
+     * Compte les cartes avec une icône spécifique (musique, etc.)
      */
-    function countCardsWithBonus(allCards, bonusType) {
-      return allCards.filter(card => card && card.bonus === bonusType).length;
+    function countCardsWithBonus(allCards, iconType) {
+      return allCards.filter(card => card && card.icon === iconType).length;
     }
 
     /**
@@ -1251,7 +1260,19 @@
       cards.forEach(card => {
         if (!card.hasOwnProperty('actor1')) card.actor1 = "";
         if (!card.hasOwnProperty('actor2')) card.actor2 = "";
-        if (!card.hasOwnProperty('bonus')) card.bonus = "";
+        // Migration du champ bonus vers icon ou bonusPoints
+        if (card.hasOwnProperty('bonus') && card.bonus) {
+          if (card.bonus === '🍿' || card.bonus === '🎬') {
+            card.bonusPoints = card.bonus;
+            card.icon = "";
+          } else {
+            card.icon = card.bonus;
+            card.bonusPoints = "";
+          }
+          delete card.bonus;
+        }
+        if (!card.hasOwnProperty('icon')) card.icon = "";
+        if (!card.hasOwnProperty('bonusPoints')) card.bonusPoints = "";
       });
     }
 
@@ -1412,7 +1433,8 @@
       document.getElementById("card-effect").value = "";
       document.getElementById("card-actor1").value = "";
       document.getElementById("card-actor2").value = "";
-      document.getElementById("card-bonus").value = "";
+      document.getElementById("card-icon").value = "";
+      document.getElementById("card-bonus-points").value = "";
       positionPattern = "AAAAA";
       renderPositionPicker();
       document.getElementById("saveCardBtn").textContent = "Enregistrer la carte";
@@ -1427,7 +1449,8 @@
       document.getElementById("card-effect").value = card.effectText || "";
       document.getElementById("card-actor1").value = card.actor1 || "";
       document.getElementById("card-actor2").value = card.actor2 || "";
-      document.getElementById("card-bonus").value = card.bonus || "";
+      document.getElementById("card-icon").value = card.icon || "";
+      document.getElementById("card-bonus-points").value = card.bonusPoints || "";
       positionPattern = card.positionPattern || "AAAAA";
       renderPositionPicker();
       document.getElementById("saveCardBtn").textContent = "Mettre à jour la carte";
@@ -1604,9 +1627,16 @@
       }
       const bonus = getPositionBonus(pattern, index);
       let bonusLabel = "";
-      if (bonus === 1) bonusLabel = " +1⭐";
-      if (bonus === -2) bonusLabel = " -2⭐";
-      return html + `<span style="margin-left:4px; font-size:0.7rem; color:#9ca3af;">${bonusLabel}</span>`;
+      let bonusStyle = "margin-left:4px; font-size:0.7rem; color:#9ca3af;";
+      if (bonus === 1) {
+        bonusLabel = " 🌟 PARFAIT ! +1⭐";
+        bonusStyle = "margin-left:4px; font-size:0.75rem; color:#22c55e; font-weight:600;";
+      }
+      if (bonus === -2) {
+        bonusLabel = " ⚠️ –2⭐";
+        bonusStyle = "margin-left:4px; font-size:0.7rem; color:#ef4444; font-weight:600;";
+      }
+      return html + `<span style="${bonusStyle}">${bonusLabel}</span>`;
     }
 
     function recalcTotals() {
@@ -1658,8 +1688,8 @@
             glory = effectStars + posBonus;
 
             // BONUS AUTOMATIQUES (🍿 Box-office, 🎬 Critique)
-            if (card.bonus === "🍿") totalBox += 1;
-            if (card.bonus === "🎬") totalCrit += 1;
+            if (card.bonusPoints === "🍿") totalBox += 1;
+            if (card.bonusPoints === "🎬") totalCrit += 1;
           }
         } else {
           posInfo.innerHTML = "";
@@ -1687,8 +1717,16 @@
         }
       });
 
-      // 4. Afficher les jetons s'il y en a
+      // 4. Afficher les totaux
       totalsEl.innerHTML = "";
+
+      // Gloire totale en gras sans boîte
+      const gloryDiv = document.createElement("div");
+      gloryDiv.style.fontSize = "1.1rem";
+      gloryDiv.style.fontWeight = "700";
+      gloryDiv.style.color = "#f97316";
+      gloryDiv.innerHTML = `⭐ Gloire totale : ${totalGlory}`;
+      totalsEl.appendChild(gloryDiv);
 
       const makePill = (icon, label, value) => {
         const div = document.createElement("div");
@@ -1703,7 +1741,6 @@
         return div;
       };
 
-      totalsEl.appendChild(makePill("⭐", "Gloire totale", totalGlory));
       totalsEl.appendChild(makePill("🍿", "Box-office", totalBox));
       totalsEl.appendChild(makePill("🎬", "Critique", totalCrit));
 
@@ -1756,7 +1793,8 @@
         const effectText = document.getElementById("card-effect").value.trim();
         const actor1 = document.getElementById("card-actor1").value;
         const actor2 = document.getElementById("card-actor2").value;
-        const bonus = document.getElementById("card-bonus").value;
+        const icon = document.getElementById("card-icon").value;
+        const bonusPoints = document.getElementById("card-bonus-points").value;
         const pattern = positionPattern || "AAAAA";
 
         if (!name) return;
@@ -1770,7 +1808,8 @@
             card.effectText = effectText;
             card.actor1 = actor1;
             card.actor2 = actor2;
-            card.bonus = bonus;
+            card.icon = icon;
+            card.bonusPoints = bonusPoints;
             card.positionPattern = pattern;
           }
         } else {
@@ -1781,7 +1820,8 @@
             effectText,
             actor1,
             actor2,
-            bonus,
+            icon,
+            bonusPoints,
             positionPattern: pattern,
           });
         }
