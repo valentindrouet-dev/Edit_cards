@@ -425,7 +425,10 @@
   <div class="app">
     <header>
       <div>
-        <h1><span class="logo">ED</span> Calculateur de suites de cartes</h1>
+        <h1>
+          <span class="logo">ED</span> Calculateur de suites de cartes
+          <span class="badge" style="margin-left: 8px; font-size: 0.7rem; font-weight: normal;">v1.3</span>
+        </h1>
         <p>Gère ton deck (mode éditeur) et calcule les points de tes montages (mode calculateur).</p>
       </div>
       <div class="tabs">
@@ -498,6 +501,39 @@
               </div>
             </div>
 
+            <div class="inline">
+              <div class="field-group">
+                <label>Acteur 1</label>
+                <select id="card-actor1">
+                  <option value="">Aucun</option>
+                  <option value="🔵">🔵 Acteur Drame</option>
+                  <option value="💙">💙 Actrice Drame</option>
+                  <option value="🟠">🟠 Acteur Comédie</option>
+                  <option value="🧡">🧡 Actrice Comédie</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label>Acteur 2</label>
+                <select id="card-actor2">
+                  <option value="">Aucun</option>
+                  <option value="🔵">🔵 Acteur Drame</option>
+                  <option value="💙">💙 Actrice Drame</option>
+                  <option value="🟠">🟠 Acteur Comédie</option>
+                  <option value="🧡">🧡 Actrice Comédie</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label>Bonus</label>
+                <select id="card-bonus">
+                  <option value="">Aucun</option>
+                  <option value="☠️">☠️ Mort</option>
+                  <option value="🤡">🤡 Gag</option>
+                  <option value="💘">💘 Romance</option>
+                  <option value="🎵">🎵 Musique</option>
+                </select>
+              </div>
+            </div>
+
             <div class="field-group">
               <label>Description de l'effet (texte libre)</label>
               <textarea id="card-effect" placeholder="Ex : ⭐ par carte 🟦, ⭐ si aucun ☠️"></textarea>
@@ -546,7 +582,7 @@
     const STORAGE_KEY = "edit_cards_v1";
 
     // ==============================================
-    // SYSTÈME DE CALCUL AUTOMATIQUE DES EFFETS
+    // SYSTÈME DE CALCUL AUTOMATIQUE DES EFFETS v1.3
     // ==============================================
     //
     // Effets supportés (calculés automatiquement) :
@@ -560,11 +596,15 @@
     // - –2 ⭐ / –1 ⭐ (malus)
     // - +1 jeton 🟦 / 🟧 (ajout de jetons)
     //
-    // Effets NON supportés (nécessitent des métadonnées d'acteurs) :
-    // - ⭐ par ⚪ / 🤍 / 🔵 / 🟠 / 🧡 / ⬜ (acteurs)
+    // Nouveautés v1.3 - Système d'acteurs :
+    // - ⭐ par ⚪ (acteur masculin, tous genres)
+    // - ⭐ par 🤍 (actrice féminine, tous genres)
+    // - ⭐ par ⬜ (n'importe quelle carte avec acteur)
+    // - ⭐ par 🔵 / 💙 (acteur/actrice drame)
+    // - ⭐ par 🟠 / 🧡 (acteur/actrice comédie)
     // - ⭐ par carte avec 2 acteurs
-    // - ⭐ par 🎵 (musique)
-    // Ces effets retourneront 0 étoiles pour l'instant.
+    // - ⭐ par 🎵 (musique, via champ bonus)
+    // Note: ⚪ / 🤍 / ⬜ = jokers (n'importe quel acteur/actrice/carte)
     //
     // ==============================================
 
@@ -654,6 +694,82 @@
         stars += count * multiplier;
       }
 
+      // COMPTAGE PAR ACTEURS
+      // "⭐ par ⚪ différent" : acteurs uniques (masculin)
+      if (text.includes('par ⚪ différent')) {
+        const count = countUniqueActors(allCards, ['🔵', '🟠'], position);
+        const multiplier = getStarMultiplier(effectText);
+        stars += count * multiplier;
+      }
+      // "⭐ par ⚪" : n'importe quel acteur (masculin)
+      else if (text.includes('par ⚪')) {
+        const count = countActors(allCards, ['🔵', '🟠'], position, text);
+        const multiplier = getStarMultiplier(effectText);
+        stars += count * multiplier;
+      }
+
+      // "⭐ par 🤍 différente" : actrices uniques (féminin)
+      if (text.includes('par 🤍 différente')) {
+        const count = countUniqueActors(allCards, ['💙', '🧡'], position);
+        const multiplier = getStarMultiplier(effectText);
+        stars += count * multiplier;
+      }
+      // "⭐ par 🤍" : n'importe quelle actrice (féminin)
+      else if (text.includes('par 🤍')) {
+        const count = countActors(allCards, ['💙', '🧡'], position, text);
+        const multiplier = getStarMultiplier(effectText);
+        stars += count * multiplier;
+      }
+
+      // "⭐ par ⬜" : n'importe quelle carte (avec acteur/actrice)
+      if (text.includes('par carte ⬜')) {
+        const count = countCardsWithActors(allCards, position, text);
+        const multiplier = getStarMultiplier(effectText);
+        stars += count * multiplier;
+      }
+
+      // "⭐ par 🔵" : acteur drame
+      if (text.includes('par 🔵')) {
+        const count = countActors(allCards, ['🔵'], position, text);
+        const multiplier = getStarMultiplier(effectText);
+        stars += count * multiplier;
+      }
+
+      // "⭐ par 💙" : actrice drame
+      if (text.includes('par 💙')) {
+        const count = countActors(allCards, ['💙'], position, text);
+        const multiplier = getStarMultiplier(effectText);
+        stars += count * multiplier;
+      }
+
+      // "⭐ par acteur comédie 🟠"
+      if (text.includes('par acteur comédie 🟠') || text.includes('par 🟠')) {
+        const count = countActors(allCards, ['🟠'], position, text);
+        const multiplier = getStarMultiplier(effectText);
+        stars += count * multiplier;
+      }
+
+      // "⭐ par 🧡" : actrice comédie
+      if (text.includes('par 🧡')) {
+        const count = countActors(allCards, ['🧡'], position, text);
+        const multiplier = getStarMultiplier(effectText);
+        stars += count * multiplier;
+      }
+
+      // "⭐ par carte avec 2 acteurs"
+      if (text.includes('par carte avec 2 acteurs')) {
+        const count = countCardsWithTwoActors(allCards, position, text);
+        const multiplier = getStarMultiplier(effectText);
+        stars += count * multiplier;
+      }
+
+      // "⭐ par 🎵" : musique
+      if (text.includes('par 🎵')) {
+        const count = countCardsWithBonus(allCards, '🎵');
+        const multiplier = getStarMultiplier(effectText);
+        stars += count * multiplier;
+      }
+
       // JETONS
       // "⭐ par jeton 🟦"
       if (text.includes('par jeton 🟦')) {
@@ -681,6 +797,15 @@
       if (text.includes('si seule carte 🟦')) {
         const dramaCount = countCards(allCards, 'drama', position, '');
         if (dramaCount === 1) {
+          const multiplier = getStarMultiplier(effectText);
+          stars += multiplier;
+        }
+      }
+
+      // "⭐ si 2+ ⚪" : si au moins 2 acteurs
+      if (text.includes('si 2+ ⚪')) {
+        const actorCount = countActors(allCards, ['🔵', '🟠'], position, '');
+        if (actorCount >= 2) {
           const multiplier = getStarMultiplier(effectText);
           stars += multiplier;
         }
@@ -749,6 +874,120 @@
      */
     function countCardsWithSymbol(allCards, symbol) {
       return allCards.filter(card => card && card.name.includes(symbol)).length;
+    }
+
+    /**
+     * Compte le nombre d'acteurs UNIQUES d'un certain type
+     * @param {array} actorTypes - Types d'acteurs à compter (ex: ['🔵', '🟠'])
+     */
+    function countUniqueActors(allCards, actorTypes, position) {
+      const uniqueActors = new Set();
+
+      allCards.forEach((card, idx) => {
+        if (!card) return;
+        if (idx === position) return; // Ne pas compter la carte actuelle
+
+        if (card.actor1 && actorTypes.includes(card.actor1)) {
+          uniqueActors.add(card.actor1);
+        }
+        if (card.actor2 && actorTypes.includes(card.actor2)) {
+          uniqueActors.add(card.actor2);
+        }
+      });
+
+      return uniqueActors.size;
+    }
+
+    /**
+     * Compte les acteurs d'un certain type (total, avec doublons)
+     * @param {array} actorTypes - Types d'acteurs à compter (ex: ['🔵', '🟠'])
+     */
+    function countActors(allCards, actorTypes, position, effectText) {
+      let count = 0;
+      const text = effectText.toLowerCase();
+
+      allCards.forEach((card, idx) => {
+        if (!card) return;
+
+        // Compter actor1 et actor2 séparément
+        let cardActorCount = 0;
+        if (card.actor1 && actorTypes.includes(card.actor1)) cardActorCount++;
+        if (card.actor2 && actorTypes.includes(card.actor2)) cardActorCount++;
+
+        if (cardActorCount === 0) return;
+
+        // Appliquer les modificateurs de position
+        if (text.includes('adjacente') && Math.abs(idx - position) !== 1) return;
+        if (text.includes('précédente') && idx >= position) return;
+        if (text.includes('suivante') && idx <= position) return;
+
+        // Si pas de modificateur, exclure la carte actuelle
+        if (!text.includes('adjacente') && !text.includes('précédente') && !text.includes('suivante')) {
+          if (idx === position) return;
+        }
+
+        count += cardActorCount;
+      });
+
+      return count;
+    }
+
+    /**
+     * Compte les cartes avec au moins un acteur/actrice
+     */
+    function countCardsWithActors(allCards, position, effectText) {
+      let count = 0;
+      const text = effectText.toLowerCase();
+
+      allCards.forEach((card, idx) => {
+        if (!card) return;
+        if (!card.actor1 && !card.actor2) return;
+
+        // Appliquer les modificateurs de position
+        if (text.includes('adjacente') && Math.abs(idx - position) !== 1) return;
+        if (text.includes('différente') && idx === position) return;
+
+        // Si pas de modificateur, exclure la carte actuelle
+        if (!text.includes('adjacente') && !text.includes('différente')) {
+          if (idx === position) return;
+        }
+
+        count++;
+      });
+
+      return count;
+    }
+
+    /**
+     * Compte les cartes avec exactement 2 acteurs
+     */
+    function countCardsWithTwoActors(allCards, position, effectText) {
+      let count = 0;
+      const text = effectText.toLowerCase();
+
+      allCards.forEach((card, idx) => {
+        if (!card) return;
+        if (!card.actor1 || !card.actor2) return;
+
+        // Appliquer les modificateurs de position
+        if (text.includes('adjacente') && Math.abs(idx - position) !== 1) return;
+
+        // Si pas de modificateur, exclure la carte actuelle
+        if (!text.includes('adjacente')) {
+          if (idx === position) return;
+        }
+
+        count++;
+      });
+
+      return count;
+    }
+
+    /**
+     * Compte les cartes avec un bonus spécifique
+     */
+    function countCardsWithBonus(allCards, bonusType) {
+      return allCards.filter(card => card && card.bonus === bonusType).length;
     }
 
     /**
@@ -986,18 +1225,31 @@
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) {
           cards = [...defaultCards];
+          migrateCards();
           return;
         }
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
           cards = parsed;
+          migrateCards();
         } else {
           cards = [...defaultCards];
+          migrateCards();
         }
       } catch (e) {
         console.error("Erreur lecture stockage", e);
         cards = [...defaultCards];
+        migrateCards();
       }
+    }
+
+    // Migration pour ajouter les nouveaux champs aux anciennes cartes
+    function migrateCards() {
+      cards.forEach(card => {
+        if (!card.hasOwnProperty('actor1')) card.actor1 = "";
+        if (!card.hasOwnProperty('actor2')) card.actor2 = "";
+        if (!card.hasOwnProperty('bonus')) card.bonus = "";
+      });
     }
 
     function saveCards() {
@@ -1155,6 +1407,9 @@
       document.getElementById("card-name").value = "";
       document.getElementById("card-genre").value = "drama";
       document.getElementById("card-effect").value = "";
+      document.getElementById("card-actor1").value = "";
+      document.getElementById("card-actor2").value = "";
+      document.getElementById("card-bonus").value = "";
       positionPattern = "AAAAA";
       renderPositionPicker();
       document.getElementById("saveCardBtn").textContent = "Enregistrer la carte";
@@ -1167,12 +1422,36 @@
       document.getElementById("card-name").value = card.name;
       document.getElementById("card-genre").value = card.genre;
       document.getElementById("card-effect").value = card.effectText || "";
+      document.getElementById("card-actor1").value = card.actor1 || "";
+      document.getElementById("card-actor2").value = card.actor2 || "";
+      document.getElementById("card-bonus").value = card.bonus || "";
       positionPattern = card.positionPattern || "AAAAA";
       renderPositionPicker();
       document.getElementById("saveCardBtn").textContent = "Mettre à jour la carte";
     }
 
     // --- Calculator rendering & logic ---
+    function updateSelectColor(select) {
+      const selectedOption = select.options[select.selectedIndex];
+      if (!selectedOption) return;
+
+      const genre = selectedOption.dataset.genre;
+      if (genre === "drama") {
+        select.style.backgroundColor = "rgba(59, 130, 246, 0.15)"; // Bleu drame
+        select.style.borderColor = "#3b82f6";
+        select.style.color = "#60a5fa";
+      } else if (genre === "comedy") {
+        select.style.backgroundColor = "rgba(249, 115, 22, 0.15)"; // Orange comédie
+        select.style.borderColor = "#f97316";
+        select.style.color = "#fb923c";
+      } else {
+        // Réinitialiser pour "aucune"
+        select.style.backgroundColor = "";
+        select.style.borderColor = "";
+        select.style.color = "";
+      }
+    }
+
     function renderCalcRows() {
       const container = document.getElementById("calc-rows");
       container.innerHTML = "";
@@ -1206,14 +1485,21 @@
         const emptyOpt = document.createElement("option");
         emptyOpt.value = "";
         emptyOpt.textContent = "— aucune —";
+        emptyOpt.dataset.genre = "";
         select.appendChild(emptyOpt);
         cards.forEach((card) => {
           const opt = document.createElement("option");
           opt.value = card.id;
-          opt.textContent = card.name;
+          opt.dataset.genre = card.genre;
+          // Afficher nom + effet (tronqué)
+          const effectShort = card.effectText ? ` (${card.effectText.substring(0, 30)}${card.effectText.length > 30 ? '...' : ''})` : '';
+          opt.textContent = card.name + effectShort;
           select.appendChild(opt);
         });
-        select.addEventListener("change", recalcTotals);
+        select.addEventListener("change", (e) => {
+          updateSelectColor(select);
+          recalcTotals();
+        });
         selectCell.appendChild(select);
 
         // position info
@@ -1431,6 +1717,9 @@
         const name = document.getElementById("card-name").value.trim();
         const genre = document.getElementById("card-genre").value;
         const effectText = document.getElementById("card-effect").value.trim();
+        const actor1 = document.getElementById("card-actor1").value;
+        const actor2 = document.getElementById("card-actor2").value;
+        const bonus = document.getElementById("card-bonus").value;
         const pattern = positionPattern || "AAAAA";
 
         if (!name) return;
@@ -1442,6 +1731,9 @@
             card.name = name;
             card.genre = genre;
             card.effectText = effectText;
+            card.actor1 = actor1;
+            card.actor2 = actor2;
+            card.bonus = bonus;
             card.positionPattern = pattern;
           }
         } else {
@@ -1450,6 +1742,9 @@
             name,
             genre,
             effectText,
+            actor1,
+            actor2,
+            bonus,
             positionPattern: pattern,
           });
         }
