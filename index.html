@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Calculateur de suites de cartes EDIT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --bg-alt: #111827;
+      --panel: #020617;
+      --accent: #f97316;
+      --accent-soft: rgba(249,115,22,0.15);
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --border: #1f2933;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warning: #facc15;
+      --radius-lg: 18px;
+      --radius-md: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      background: radial-gradient(circle at top, #1e293b, #020617 60%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 1100px;
+      background: linear-gradient(145deg, #020617, #020617f0);
+      border-radius: 24px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      box-shadow:
+        0 30px 70px rgba(15, 23, 42, 0.9),
+        0 0 0 1px rgba(15, 23, 42, 0.8);
+      padding: 20px 22px 24px;
+      backdrop-filter: blur(12px);
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    header h1 {
+      font-size: 1.4rem;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    header h1 span.logo {
+      display: inline-flex;
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 30% 20%, #fed7aa, #f97316);
+      color: #111827;
+      font-weight: 800;
+      font-size: 0.9rem;
+    }
+
+    header p {
+      margin: 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .tabs {
+      display: inline-flex;
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: 999px;
+      padding: 3px;
+      border: 1px solid rgba(55, 65, 81, 0.8);
+    }
+
+    .tab-btn {
+      border: none;
+      outline: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.85rem;
+      padding: 6px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .tab-btn.active {
+      background: var(--accent);
+      color: #111827;
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.5);
+    }
+
+    .main {
+      display: grid;
+      grid-template-columns: minmax(0, 2.3fr) minmax(0, 1.7fr);
+      gap: 18px;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        padding: 12px;
+      }
+      .app {
+        padding: 16px;
+      }
+      .main {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .card {
+      background: radial-gradient(circle at top left, #020617, #020617f0);
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(51, 65, 85, 0.9);
+      padding: 14px 14px 16px;
+      box-shadow:
+        0 16px 40px rgba(15, 23, 42, 0.9),
+        inset 0 0 0 1px rgba(15, 23, 42, 0.9);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .card-header h2 {
+      font-size: 1rem;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      padding: 2px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      color: var(--muted);
+    }
+
+    .badge.accent {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(249, 115, 22, 0.08);
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .field-group label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select,
+    textarea {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      padding: 6px 8px;
+      font-size: 0.85rem;
+      color: var(--text);
+      outline: none;
+      transition: border 0.15s ease, box-shadow 0.15s ease,
+        background 0.15s ease;
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.3);
+      background: #020617;
+    }
+
+    textarea {
+      min-height: 60px;
+      resize: vertical;
+    }
+
+    .inline {
+      display: flex;
+      gap: 8px;
+    }
+
+    .inline > * {
+      flex: 1;
+    }
+
+    .btn {
+      border-radius: 999px;
+      border: none;
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--muted);
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+      border-color: rgba(148, 163, 184, 0.9);
+      color: var(--text);
+    }
+
+    .btn.primary {
+      background: var(--accent);
+      color: #111827;
+      border-color: transparent;
+      font-weight: 500;
+    }
+
+    .btn.primary:hover {
+      filter: brightness(1.05);
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.7);
+    }
+
+    .btn.small {
+      padding: 4px 9px;
+      font-size: 0.76rem;
+      border-radius: 999px;
+    }
+
+    .card-list {
+      margin-top: 6px;
+      max-height: 270px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .card-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) 0.7fr 0.9fr auto;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(31, 41, 55, 0.9);
+      font-size: 0.82rem;
+      margin-bottom: 4px;
+    }
+
+    .card-row-main {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .card-row-name {
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-row-effect {
+      font-size: 0.72rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      background: rgba(15, 23, 42, 0.8);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .chip.drama {
+      border-color: #38bdf8;
+      color: #38bdf8;
+    }
+
+    .chip.comedy {
+      border-color: #fbbf24;
+      color: #fbbf24;
+    }
+
+    .chip-pos {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo,
+        Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.72rem;
+    }
+
+    .calc-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .calc-row {
+      display: grid;
+      grid-template-columns: 24px minmax(0, 1.6fr) 0.7fr 0.7fr 0.7fr 0.7fr;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(31, 41, 55, 0.9);
+      font-size: 0.8rem;
+    }
+
+    .calc-row-label {
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .pos-indicator {
+      display: inline-flex;
+      gap: 2px;
+      font-size: 0.7rem;
+    }
+
+    .pos-square {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      opacity: 0.65;
+    }
+
+    .pos-I {
+      background: var(--danger);
+    }
+
+    .pos-A {
+      background: var(--warning);
+    }
+
+    .pos-P {
+      background: var(--success);
+    }
+
+    .calc-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed rgba(55, 65, 81, 0.8);
+    }
+
+    .totals {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 0.85rem;
+    }
+
+    .total-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(55, 65, 81, 0.9);
+    }
+
+    .total-pill span.icon {
+      font-size: 0.9rem;
+    }
+
+    .hint {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <h1><span class="logo">ED</span> Calculateur de suites de cartes</h1>
+        <p>Gère ton deck (mode éditeur) et calcule les points de tes montages (mode calculateur).</p>
+      </div>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="calc">🧮 Calculateur</button>
+        <button class="tab-btn" data-tab="editor">🗂️ Éditeur de cartes</button>
+      </div>
+    </header>
+
+    <div class="main">
+      <!-- LEFT: CALCULATOR / EDITOR MAIN PANEL -->
+      <div id="left-panel">
+        <!-- CALCULATOR -->
+        <section id="calc-panel" class="card">
+          <div class="card-header">
+            <h2>🧮 Calculateur de suite (5 cartes)</h2>
+            <span class="badge">Révélation de gauche à droite</span>
+          </div>
+
+          <div class="field-group">
+            <label>Sélectionne les cartes dans l'ordre du montage</label>
+            <div class="hint">
+              Pour l'instant, les effets (⭐ d'effet) sont saisis à la main. La page applique automatiquement les
+              bonus/malus de position et cumule Gloire / Box-office / Critique.
+            </div>
+          </div>
+
+          <div class="calc-grid" id="calc-rows">
+            <!-- Rows will be injected by JS -->
+          </div>
+
+          <div class="calc-footer">
+            <div class="totals" id="totals">
+              <!-- totals injected -->
+            </div>
+            <button class="btn small" id="resetCalc">Réinitialiser la suite</button>
+          </div>
+        </section>
+
+        <!-- EDITOR -->
+        <section id="editor-panel" class="card" style="display:none; margin-top:0;">
+          <div class="card-header">
+            <h2>🗂️ Éditeur de cartes</h2>
+            <span class="badge accent">Sauvegardé dans ce navigateur</span>
+          </div>
+
+          <form id="card-form">
+            <input type="hidden" id="card-id" />
+            <div class="inline">
+              <div class="field-group">
+                <label>Nom de la carte</label>
+                <input type="text" id="card-name" placeholder="Ex : Romance 💘" required />
+              </div>
+              <div class="field-group">
+                <label>Genre</label>
+                <select id="card-genre">
+                  <option value="drama">Drame 🟦</option>
+                  <option value="comedy">Comédie 🟧</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label>Pattern de position (5 cases)</label>
+              <div class="hint">
+                Choisis pour chaque position : 🟥 Interdite (–2 ⭐), 🟨 Autorisée (0), 🟩 Parfaite (+1 ⭐).
+              </div>
+              <div class="inline" id="position-picker">
+                <!-- buttons via JS -->
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label>Description de l'effet (texte libre)</label>
+              <textarea id="card-effect" placeholder="Ex : ⭐ par carte 🟦, ⭐ si aucun ☠️"></textarea>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:4px;">
+              <button type="submit" class="btn primary" id="saveCardBtn">Enregistrer la carte</button>
+              <button type="button" class="btn small" id="resetFormBtn">Nouveau</button>
+            </div>
+          </form>
+        </section>
+      </div>
+
+      <!-- RIGHT: CARD LIST / HELP -->
+      <div id="right-panel">
+        <section class="card">
+          <div class="card-header">
+            <h2>📚 Cartes disponibles</h2>
+            <span class="badge" id="cardCountBadge">0 carte</span>
+          </div>
+          <div class="hint">
+            Clique sur ✏️ pour modifier une carte. Les changements sont instantanément disponibles dans le calculateur.
+          </div>
+          <div class="card-list" id="card-list">
+            <!-- card rows via JS -->
+          </div>
+        </section>
+
+        <section class="card" style="margin-top:12px;">
+          <div class="card-header">
+            <h2>ℹ️ Rappel des règles de position</h2>
+          </div>
+          <ul class="hint" style="padding-left:16px; margin:4px 0 0;">
+            <li>Chaque carte a un pattern de 5 cases (1 à 5).</li>
+            <li>🟥 = position interdite → <strong>–2 ⭐</strong> si la carte est à cette position.</li>
+            <li>🟨 = position autorisée → <strong>0</strong>.</li>
+            <li>🟩 = position parfaite → <strong>+1 ⭐</strong>.</li>
+            <li>Les ⭐ d'effet sont à entrer manuellement dans le calculateur pour l'instant.</li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "edit_cards_v1";
+
+    // Cartes par défaut (tes 24 cartes Drame + Comédie)
+    const defaultCards = [
+      // DRAME
+      {
+        id: "d_ouverture",
+        name: "Ouverture",
+        genre: "drama",
+        positionPattern: "PAIII", // 🟩🟨🟥🟥🟥
+        effectText: "+1 jeton 🟦, ⭐ par carte 🟦"
+      },
+      {
+        id: "d_enfance_tragique",
+        name: "Enfance Tragique ☠️",
+        genre: "drama",
+        positionPattern: "PAIII", // 🟩🟨🟥🟥🟥
+        effectText: "⭐ par carte 🟦 suivante"
+      },
+      {
+        id: "d_avertissement",
+        name: "Avertissement",
+        genre: "drama",
+        positionPattern: "APAII", // 🟨🟩🟨🟥🟥
+        effectText: "⭐ par carte visible, ⭐ par jeton 🟦"
+      },
+      {
+        id: "d_quiproquo_amoureux",
+        name: "Quiproquo Amoureux 💘",
+        genre: "drama",
+        positionPattern: "APAAI", // 🟨🟩🟨🟨🟥
+        effectText: "⭐ par 🤍 adjacente, ⭐ par carte 🟧 adjacente"
+      },
+      {
+        id: "d_appel_aux_armes",
+        name: "Appel aux Armes",
+        genre: "drama",
+        positionPattern: "AAPII", // 🟨🟨🟩🟥🟥
+        effectText: "⭐ par 🎵, ⭐ par jeton 🟦"
+      },
+      {
+        id: "d_revelation_inattendue",
+        name: "Révélation Inattendue",
+        genre: "drama",
+        positionPattern: "IAPAA", // 🟥🟨🟩🟨🟨
+        effectText: "⭐ par carte 🟦, ⭐ par carte 🟧 suivante"
+      },
+      {
+        id: "d_romance",
+        name: "Romance 💘",
+        genre: "drama",
+        positionPattern: "AAPAI", // 🟨🟨🟩🟨🟥
+        effectText: "⭐ par ⚪ différent, ⭐ si 2+ ⚪"
+      },
+      {
+        id: "d_destin_fatal",
+        name: "Destin Fatal ☠️",
+        genre: "drama",
+        positionPattern: "IAPAA", // 🟥🟨🟩🟨🟨
+        effectText: "⭐ par 🔵 précédent, –2 ⭐ par 🔵 suivant"
+      },
+      {
+        id: "d_choix_bouleversant",
+        name: "Choix Bouleversant",
+        genre: "drama",
+        positionPattern: "IIAPI", // 🟥🟥🟨🟩🟥
+        effectText: "⭐ si seule carte 🟦, ⭐ par carte 🟧 précédente"
+      },
+      {
+        id: "d_retrouvailles",
+        name: "Retrouvailles 💘",
+        genre: "drama",
+        positionPattern: "IIAAP", // 🟥🟥🟨🟨🟩
+        effectText: "⭐⭐ par carte ⬜ avec ces deux acteurs"
+      },
+      {
+        id: "d_funerailles",
+        name: "Funérailles ☠️",
+        genre: "drama",
+        positionPattern: "IIIAP", // 🟥🟥🟥🟨🟩
+        effectText: "⭐ par ☠️"
+      },
+      {
+        id: "d_mort_de_chagrin",
+        name: "Mort de Chagrin ☠️",
+        genre: "drama",
+        positionPattern: "IIAAP", // 🟥🟥🟨🟨🟩
+        effectText: "⭐⭐⭐⭐⭐, –1 ⭐ par carte ⬜"
+      },
+      {
+        id: "d_epilogue_heureux",
+        name: "Épilogue Heureux",
+        genre: "drama",
+        positionPattern: "IIIAP", // 🟥🟥🟥🟨🟩
+        effectText: "⭐ par carte 🟦, ⭐ si aucun ☠️"
+      },
+
+      // COMEDIE
+      {
+        id: "c_cascade_burlesque",
+        name: "Cascade Burlesque 🤡",
+        genre: "comedy",
+        positionPattern: "PAAAI", // 🟩🟨🟨🟨🟥
+        effectText: "⭐ par acteur comédie 🟠"
+      },
+      {
+        id: "c_arroseur_arrose",
+        name: "Arroseur Arrosé 🤡",
+        genre: "comedy",
+        positionPattern: "APAAA", // 🟨🟩🟨🟨🟨
+        effectText: "+1 jeton 🟧, ⭐ par carte 🟧 visible"
+      },
+      {
+        id: "c_groupe_dysfonctionnel",
+        name: "Groupe Dysfonctionnel",
+        genre: "comedy",
+        positionPattern: "AAPAI", // 🟨🟨🟩🟨🟥
+        effectText: "⭐ par ⚪ différent, ⭐ par 🤍 différente"
+      },
+      {
+        id: "c_gag_recurrent",
+        name: "Gag Récurrent 🤡",
+        genre: "comedy",
+        positionPattern: "IAPAI", // 🟥🟨🟩🟨🟥
+        effectText: "⭐ par 🤡"
+      },
+      {
+        id: "c_duo_de_choc",
+        name: "Duo de Choc",
+        genre: "comedy",
+        positionPattern: "IAPAI", // 🟥🟨🟩🟨🟥
+        effectText: "⭐ par carte avec 2 acteurs (⚪ + 🤍)"
+      },
+      {
+        id: "c_diner_ambassadeur",
+        name: "Dîner chez l’Ambassadeur",
+        genre: "comedy",
+        positionPattern: "AAPII", // 🟨🟨🟩🟥🟥
+        effectText: "⭐ par carte 🟦 suivante"
+      },
+      {
+        id: "c_vent_indiscret",
+        name: "Vent Indiscret 💘",
+        genre: "comedy",
+        positionPattern: "IIPAI", // 🟥🟥🟩🟨🟥
+        effectText: "⭐ par ⚪, –1 ⭐ par 🤍 adjacente"
+      },
+      {
+        id: "c_chute_decors",
+        name: "Chute du Décors ☠️",
+        genre: "comedy",
+        positionPattern: "IIAPA", // 🟥🟥🟨🟩🟨
+        effectText: "⭐ par 🤡, –1 ⭐ par ☠️"
+      },
+      {
+        id: "c_escalator_infini",
+        name: "L’Escalator Infini 🤡",
+        genre: "comedy",
+        positionPattern: "IIAPA", // 🟥🟥🟨🟩🟨
+        effectText: "⭐⭐ par carte 🟧 adjacente, –1 ⭐ par carte ⬜ adjacente"
+      },
+      {
+        id: "c_filature_taxi",
+        name: "Filature en Taxi",
+        genre: "comedy",
+        positionPattern: "IAAPI", // 🟥🟨🟨🟩🟥
+        effectText: "⭐ par carte ⬜ différente"
+      },
+      {
+        id: "c_baiser_pluie",
+        name: "Baiser sous la Pluie 💘",
+        genre: "comedy",
+        positionPattern: "IAAAP", // 🟥🟨🟨🟨🟩
+        effectText: "⭐⭐⭐⭐⭐, –1 ⭐ par ⚪ / 🤍 différents"
+      },
+      {
+        id: "c_quiproquo_telephone",
+        name: "Quiproquo au Téléphone",
+        genre: "comedy",
+        positionPattern: "IAAPI", // 🟥🟨🟨🟩🟥
+        effectText: "⭐ par 🧡, –1 ⭐ par 🤍"
+      }
+    ];
+
+    /** @type {{ id:string, name:string, genre:'drama'|'comedy', positionPattern:string, effectText:string }[]} */
+    let cards = [];
+
+    function loadCards() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          cards = [...defaultCards];
+          return;
+        }
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          cards = parsed;
+        } else {
+          cards = [...defaultCards];
+        }
+      } catch (e) {
+        console.error("Erreur lecture stockage", e);
+        cards = [...defaultCards];
+      }
+    }
+
+    function saveCards() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+      renderCardList();
+      renderCalcRows();
+    }
+
+    function createId() {
+      return "c_" + Math.random().toString(36).slice(2, 10);
+    }
+
+    // --- Position picker state ---
+    let positionPattern = "AAAAA"; // A=autorisé, I=interdit, P=parfait
+
+    function setPositionAt(index, value) {
+      const arr = positionPattern.split("");
+      arr[index] = value;
+      positionPattern = arr.join("");
+      renderPositionPicker();
+    }
+
+    // --- Rendering: position picker ---
+    function renderPositionPicker() {
+      const container = document.getElementById("position-picker");
+      container.innerHTML = "";
+      for (let i = 0; i < 5; i++) {
+        const current = positionPattern[i] || "A";
+        const wrapper = document.createElement("div");
+        wrapper.style.display = "flex";
+        wrapper.style.flexDirection = "column";
+        wrapper.style.alignItems = "center";
+        wrapper.style.gap = "4px";
+        wrapper.style.fontSize = "0.7rem";
+
+        const label = document.createElement("div");
+        label.textContent = i + 1;
+        label.style.color = "#9ca3af";
+
+        const select = document.createElement("select");
+        select.style.minWidth = "70px";
+        [
+          { v: "I", label: "🟥 Interdite" },
+          { v: "A", label: "🟨 Aut." },
+          { v: "P", label: "🟩 Perf." },
+        ].forEach((opt) => {
+          const o = document.createElement("option");
+          o.value = opt.v;
+          o.textContent = opt.label;
+          if (opt.v === current) o.selected = true;
+          select.appendChild(o);
+        });
+        select.addEventListener("change", (e) => {
+          setPositionAt(i, e.target.value);
+        });
+
+        wrapper.appendChild(label);
+        wrapper.appendChild(select);
+        container.appendChild(wrapper);
+      }
+    }
+
+    // --- Rendering: card list on right ---
+    function renderCardList() {
+      const list = document.getElementById("card-list");
+      list.innerHTML = "";
+      if (!cards.length) {
+        const p = document.createElement("div");
+        p.className = "hint";
+        p.textContent = "Aucune carte enregistrée pour l'instant. Ajoute tes cartes via l'onglet Éditeur.";
+        list.appendChild(p);
+      } else {
+        cards.forEach((card) => {
+          const row = document.createElement("div");
+          row.className = "card-row";
+
+          const main = document.createElement("div");
+          main.className = "card-row-main";
+
+          const name = document.createElement("div");
+          name.className = "card-row-name";
+          name.textContent = card.name;
+
+          const eff = document.createElement("div");
+          eff.className = "card-row-effect";
+          eff.textContent = card.effectText || "(aucun effet renseigné)";
+
+          main.appendChild(name);
+          main.appendChild(eff);
+
+          const genreChip = document.createElement("div");
+          genreChip.className = "chip " + (card.genre === "drama" ? "drama" : "comedy");
+          genreChip.textContent = card.genre === "drama" ? "Drame 🟦" : "Comédie 🟧";
+
+          const posChip = document.createElement("div");
+          posChip.className = "chip chip-pos";
+          posChip.innerHTML = renderPositionSquares(card.positionPattern);
+
+          const actions = document.createElement("div");
+          actions.style.display = "flex";
+          actions.style.gap = "4px";
+
+          const editBtn = document.createElement("button");
+          editBtn.className = "btn small";
+          editBtn.textContent = "✏️";
+          editBtn.title = "Modifier";
+          editBtn.addEventListener("click", () => {
+            loadCardIntoForm(card.id);
+          });
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.className = "btn small";
+          deleteBtn.textContent = "🗑️";
+          deleteBtn.title = "Supprimer";
+          deleteBtn.addEventListener("click", () => {
+            if (confirm(`Supprimer la carte « ${card.name} » ?`)) {
+              cards = cards.filter((c) => c.id !== card.id);
+              saveCards();
+            }
+          });
+
+          actions.appendChild(editBtn);
+          actions.appendChild(deleteBtn);
+
+          row.appendChild(main);
+          row.appendChild(genreChip);
+          row.appendChild(posChip);
+          row.appendChild(actions);
+
+          list.appendChild(row);
+        });
+      }
+
+      const badge = document.getElementById("cardCountBadge");
+      badge.textContent = cards.length + (cards.length > 1 ? " cartes" : " carte");
+    }
+
+    function renderPositionSquares(pattern) {
+      const chars = pattern || "AAAAA";
+      let html = "";
+      for (let i = 0; i < 5; i++) {
+        const c = chars[i] || "A";
+        const cls =
+          c === "I" ? "pos-I" :
+          c === "P" ? "pos-P" :
+          "pos-A";
+        html += `<span class="pos-square ${cls}"></span>`;
+      }
+      return html;
+    }
+
+    // --- Form handling (editor) ---
+    function resetForm() {
+      document.getElementById("card-id").value = "";
+      document.getElementById("card-name").value = "";
+      document.getElementById("card-genre").value = "drama";
+      document.getElementById("card-effect").value = "";
+      positionPattern = "AAAAA";
+      renderPositionPicker();
+      document.getElementById("saveCardBtn").textContent = "Enregistrer la carte";
+    }
+
+    function loadCardIntoForm(id) {
+      const card = cards.find((c) => c.id === id);
+      if (!card) return;
+      document.getElementById("card-id").value = card.id;
+      document.getElementById("card-name").value = card.name;
+      document.getElementById("card-genre").value = card.genre;
+      document.getElementById("card-effect").value = card.effectText || "";
+      positionPattern = card.positionPattern || "AAAAA";
+      renderPositionPicker();
+      document.getElementById("saveCardBtn").textContent = "Mettre à jour la carte";
+    }
+
+    // --- Calculator rendering & logic ---
+    function renderCalcRows() {
+      const container = document.getElementById("calc-rows");
+      container.innerHTML = "";
+
+      // header row
+      const headerRow = document.createElement("div");
+      headerRow.className = "calc-row";
+      headerRow.innerHTML = `
+        <div class="calc-row-label">#</div>
+        <div class="calc-row-label">Carte</div>
+        <div class="calc-row-label">Pos.</div>
+        <div class="calc-row-label">⭐ Effet</div>
+        <div class="calc-row-label">⭐ Gloire</div>
+        <div class="calc-row-label">🍿 / 🎬</div>
+      `;
+      container.appendChild(headerRow);
+
+      for (let i = 0; i < 5; i++) {
+        const row = document.createElement("div");
+        row.className = "calc-row";
+
+        // index
+        const indexCell = document.createElement("div");
+        indexCell.style.textAlign = "center";
+        indexCell.textContent = i + 1;
+
+        // card select
+        const selectCell = document.createElement("div");
+        const select = document.createElement("select");
+        select.dataset.pos = String(i);
+        const emptyOpt = document.createElement("option");
+        emptyOpt.value = "";
+        emptyOpt.textContent = "— aucune —";
+        select.appendChild(emptyOpt);
+        cards.forEach((card) => {
+          const opt = document.createElement("option");
+          opt.value = card.id;
+          opt.textContent = card.name;
+          select.appendChild(opt);
+        });
+        select.addEventListener("change", recalcTotals);
+        selectCell.appendChild(select);
+
+        // position info
+        const posCell = document.createElement("div");
+        posCell.className = "pos-indicator";
+        posCell.dataset.posInfo = String(i);
+
+        // effectStars input
+        const effectCell = document.createElement("div");
+        const effectInput = document.createElement("input");
+        effectInput.type = "number";
+        effectInput.step = "1";
+        effectInput.value = "0";
+        effectInput.dataset.effect = String(i);
+        effectInput.addEventListener("input", recalcTotals);
+        effectCell.appendChild(effectInput);
+
+        // gloryStars (readonly)
+        const gloryCell = document.createElement("div");
+        const gloryInput = document.createElement("input");
+        gloryInput.type = "number";
+        gloryInput.readOnly = true;
+        gloryInput.value = "0";
+        gloryInput.dataset.glory = String(i);
+        gloryCell.appendChild(gloryInput);
+
+        // box/crit manual
+        const miscCell = document.createElement("div");
+        const miscInput = document.createElement("input");
+        miscInput.type = "text";
+        miscInput.placeholder = "ex: 🍿1, 🎬1";
+        miscInput.dataset.misc = String(i);
+        miscInput.addEventListener("input", recalcTotals);
+        miscCell.appendChild(miscInput);
+
+        row.appendChild(indexCell);
+        row.appendChild(selectCell);
+        row.appendChild(posCell);
+        row.appendChild(effectCell);
+        row.appendChild(gloryCell);
+        row.appendChild(miscCell);
+
+        container.appendChild(row);
+      }
+
+      recalcTotals();
+    }
+
+    function getPositionBonus(pattern, index) {
+      const p = pattern || "AAAAA";
+      const c = p[index] || "A";
+      if (c === "I") return -2;
+      if (c === "P") return 1;
+      return 0;
+    }
+
+    function renderPositionIndicator(pattern, index) {
+      const p = pattern || "AAAAA";
+      let html = "";
+      for (let i = 0; i < 5; i++) {
+        const c = p[i] || "A";
+        const cls =
+          c === "I" ? "pos-I" :
+          c === "P" ? "pos-P" :
+          "pos-A";
+        html += `<span class="pos-square ${cls}" title="Position ${i + 1}"></span>`;
+      }
+      const bonus = getPositionBonus(pattern, index);
+      let bonusLabel = "";
+      if (bonus === 1) bonusLabel = " +1⭐";
+      if (bonus === -2) bonusLabel = " -2⭐";
+      return html + `<span style="margin-left:4px; font-size:0.7rem; color:#9ca3af;">${bonusLabel}</span>`;
+    }
+
+    function recalcTotals() {
+      const selects = document.querySelectorAll("select[data-pos]");
+      const totalsEl = document.getElementById("totals");
+
+      let totalGlory = 0;
+      let totalBox = 0;
+      let totalCrit = 0;
+
+      selects.forEach((sel) => {
+        const index = Number(sel.dataset.pos);
+        const cardId = sel.value;
+        const posInfo = document.querySelector(`[data-pos-info="${index}"]`);
+        const effectInput = document.querySelector(`input[data-effect="${index}"]`);
+        const gloryInput = document.querySelector(`input[data-glory="${index}"]`);
+        const miscInput = document.querySelector(`input[data-misc="${index}"]`);
+
+        let glory = 0;
+
+        if (cardId) {
+          const card = cards.find((c) => c.id === cardId);
+          if (card) {
+            // update position indicator
+            posInfo.innerHTML = renderPositionIndicator(card.positionPattern, index);
+
+            const effectStars = parseInt(effectInput.value || "0", 10) || 0;
+            const posBonus = getPositionBonus(card.positionPattern, index);
+            glory = effectStars + posBonus;
+          }
+        } else {
+          posInfo.innerHTML = "";
+        }
+
+        gloryInput.value = glory;
+        totalGlory += glory;
+
+        // parse misc: format like "🍿1, 🎬2"
+        const miscText = (miscInput.value || "").trim();
+        if (miscText) {
+          const parts = miscText.split(",");
+          parts.forEach((p) => {
+            const t = p.trim();
+            if (!t) return;
+            const match = t.match(/(🍿|🎬)\s*([+-]?\d+)/);
+            if (match) {
+              const icon = match[1];
+              const val = parseInt(match[2], 10) || 0;
+              if (icon === "🍿") totalBox += val;
+              if (icon === "🎬") totalCrit += val;
+            }
+          });
+        }
+      });
+
+      totalsEl.innerHTML = "";
+
+      const makePill = (icon, label, value) => {
+        const div = document.createElement("div");
+        div.className = "total-pill";
+        const iSpan = document.createElement("span");
+        iSpan.className = "icon";
+        iSpan.textContent = icon;
+        const tSpan = document.createElement("span");
+        tSpan.textContent = `${label}: ${value}`;
+        div.appendChild(iSpan);
+        div.appendChild(tSpan);
+        return div;
+      };
+
+      totalsEl.appendChild(makePill("⭐", "Gloire totale", totalGlory));
+      totalsEl.appendChild(makePill("🍿", "Box-office", totalBox));
+      totalsEl.appendChild(makePill("🎬", "Critique", totalCrit));
+    }
+
+    // --- Tabs ---
+    function setupTabs() {
+      const tabs = document.querySelectorAll(".tab-btn");
+      const calcPanel = document.getElementById("calc-panel");
+      const editorPanel = document.getElementById("editor-panel");
+
+      tabs.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          tabs.forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          const tab = btn.dataset.tab;
+          if (tab === "calc") {
+            calcPanel.style.display = "";
+            editorPanel.style.display = "none";
+          } else {
+            calcPanel.style.display = "none";
+            editorPanel.style.display = "";
+          }
+        });
+      });
+    }
+
+    // --- Init ---
+    document.addEventListener("DOMContentLoaded", () => {
+      loadCards();
+      renderPositionPicker();
+      renderCardList();
+      renderCalcRows();
+      setupTabs();
+
+      // Editor form
+      const form = document.getElementById("card-form");
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const id = document.getElementById("card-id").value;
+        const name = document.getElementById("card-name").value.trim();
+        const genre = document.getElementById("card-genre").value;
+        const effectText = document.getElementById("card-effect").value.trim();
+        const pattern = positionPattern || "AAAAA";
+
+        if (!name) return;
+
+        if (id) {
+          // update
+          const card = cards.find((c) => c.id === id);
+          if (card) {
+            card.name = name;
+            card.genre = genre;
+            card.effectText = effectText;
+            card.positionPattern = pattern;
+          }
+        } else {
+          cards.push({
+            id: createId(),
+            name,
+            genre,
+            effectText,
+            positionPattern: pattern,
+          });
+        }
+
+        saveCards();
+        resetForm();
+      });
+
+      document.getElementById("resetFormBtn").addEventListener("click", () => {
+        resetForm();
+      });
+
+      document.getElementById("resetCalc").addEventListener("click", () => {
+        const selects = document.querySelectorAll("select[data-pos]");
+        const effectInputs = document.querySelectorAll("input[data-effect]");
+        const gloryInputs = document.querySelectorAll("input[data-glory]");
+        const miscInputs = document.querySelectorAll("input[data-misc]");
+        const posInfos = document.querySelectorAll("[data-pos-info]");
+
+        selects.forEach((s) => (s.value = ""));
+        effectInputs.forEach((i) => (i.value = "0"));
+        gloryInputs.forEach((i) => (i.value = "0"));
+        miscInputs.forEach((i) => (i.value = ""));
+        posInfos.forEach((p) => (p.innerHTML = ""));
+
+        recalcTotals();
+      });
+    });
+  </script>
+</body>
+</html>
