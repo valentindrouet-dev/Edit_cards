@@ -530,6 +530,8 @@
                   <option value="🤡">🤡 Gag</option>
                   <option value="💘">💘 Romance</option>
                   <option value="🎵">🎵 Musique</option>
+                  <option value="🍿">🍿 +1 Box-office</option>
+                  <option value="🎬">🎬 +1 Critique</option>
                 </select>
               </div>
             </div>
@@ -596,7 +598,7 @@
     // - –2 ⭐ / –1 ⭐ (malus)
     // - +1 jeton 🟦 / 🟧 (ajout de jetons)
     //
-    // Nouveautés v1.3 - Système d'acteurs :
+    // Nouveautés v1.3 - Système d'acteurs et bonus :
     // - ⭐ par ⚪ (acteur masculin, tous genres)
     // - ⭐ par 🤍 (actrice féminine, tous genres)
     // - ⭐ par ⬜ (n'importe quelle carte avec acteur)
@@ -604,6 +606,7 @@
     // - ⭐ par 🟠 / 🧡 (acteur/actrice comédie)
     // - ⭐ par carte avec 2 acteurs
     // - ⭐ par 🎵 (musique, via champ bonus)
+    // - Bonus automatiques : 🍿 +1 Box-office, 🎬 +1 Critique
     // Note: ⚪ / 🤍 / ⬜ = jokers (n'importe quel acteur/actrice/carte)
     //
     // ==============================================
@@ -1452,6 +1455,24 @@
       }
     }
 
+    function updateEffectDisplay(position) {
+      const select = document.querySelector(`select[data-pos="${position}"]`);
+      const effectDisplay = document.querySelector(`[data-effect-display="${position}"]`);
+      if (!select || !effectDisplay) return;
+
+      const cardId = select.value;
+      if (cardId) {
+        const card = cards.find((c) => c.id === cardId);
+        if (card && card.effectText) {
+          effectDisplay.textContent = "→ " + card.effectText;
+        } else {
+          effectDisplay.textContent = "";
+        }
+      } else {
+        effectDisplay.textContent = "";
+      }
+    }
+
     function renderCalcRows() {
       const container = document.getElementById("calc-rows");
       container.innerHTML = "";
@@ -1480,6 +1501,10 @@
 
         // card select
         const selectCell = document.createElement("div");
+        selectCell.style.display = "flex";
+        selectCell.style.flexDirection = "column";
+        selectCell.style.gap = "4px";
+
         const select = document.createElement("select");
         select.dataset.pos = String(i);
         const emptyOpt = document.createElement("option");
@@ -1491,16 +1516,24 @@
           const opt = document.createElement("option");
           opt.value = card.id;
           opt.dataset.genre = card.genre;
-          // Afficher nom + effet (tronqué)
-          const effectShort = card.effectText ? ` (${card.effectText.substring(0, 30)}${card.effectText.length > 30 ? '...' : ''})` : '';
-          opt.textContent = card.name + effectShort;
+          opt.textContent = card.name;
           select.appendChild(opt);
         });
         select.addEventListener("change", (e) => {
           updateSelectColor(select);
+          updateEffectDisplay(i);
           recalcTotals();
         });
         selectCell.appendChild(select);
+
+        // Affichage de l'effet complet sous le select
+        const effectDisplay = document.createElement("div");
+        effectDisplay.dataset.effectDisplay = String(i);
+        effectDisplay.style.fontSize = "0.72rem";
+        effectDisplay.style.color = "#9ca3af";
+        effectDisplay.style.fontStyle = "italic";
+        effectDisplay.style.minHeight = "1em";
+        selectCell.appendChild(effectDisplay);
 
         // position info
         const posCell = document.createElement("div");
@@ -1623,6 +1656,10 @@
 
             const posBonus = getPositionBonus(card.positionPattern, index);
             glory = effectStars + posBonus;
+
+            // BONUS AUTOMATIQUES (🍿 Box-office, 🎬 Critique)
+            if (card.bonus === "🍿") totalBox += 1;
+            if (card.bonus === "🎬") totalCrit += 1;
           }
         } else {
           posInfo.innerHTML = "";
