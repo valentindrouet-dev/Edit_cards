@@ -447,8 +447,9 @@
           <div class="field-group">
             <label>Sélectionne les cartes dans l'ordre du montage</label>
             <div class="hint">
-              Pour l'instant, les effets (⭐ d'effet) sont saisis à la main. La page applique automatiquement les
-              bonus/malus de position et cumule Gloire / Box-office / Critique.
+              Les ⭐ d'effet sont calculées automatiquement selon les règles de chaque carte.
+              Les bonus/malus de position sont appliqués automatiquement.
+              Seuls les 🍿 Box-office et 🎬 Critique nécessitent une saisie manuelle.
             </div>
           </div>
 
@@ -543,6 +544,257 @@
 
   <script>
     const STORAGE_KEY = "edit_cards_v1";
+
+    // ==============================================
+    // SYSTÈME DE CALCUL AUTOMATIQUE DES EFFETS
+    // ==============================================
+    //
+    // Effets supportés (calculés automatiquement) :
+    // - ⭐ par carte 🟦 / 🟧 (avec modificateurs : suivante, précédente, adjacente, visible)
+    // - ⭐ par ☠️ / 🤡 / 💘 (symboles dans le nom)
+    // - ⭐ par jeton 🟦 / 🟧
+    // - ⭐ par carte visible
+    // - ⭐ si aucun ☠️
+    // - ⭐ si seule carte 🟦
+    // - ⭐⭐⭐⭐⭐ (valeurs fixes)
+    // - –2 ⭐ / –1 ⭐ (malus)
+    // - +1 jeton 🟦 / 🟧 (ajout de jetons)
+    //
+    // Effets NON supportés (nécessitent des métadonnées d'acteurs) :
+    // - ⭐ par ⚪ / 🤍 / 🔵 / 🟠 / 🧡 / ⬜ (acteurs)
+    // - ⭐ par carte avec 2 acteurs
+    // - ⭐ par 🎵 (musique)
+    // Ces effets retourneront 0 étoiles pour l'instant.
+    //
+    // ==============================================
+
+    /**
+     * Calcule les étoiles d'effet pour une carte à une position donnée
+     * @param {object} card - La carte en question
+     * @param {number} position - Position de la carte (0-4)
+     * @param {object[]} allCards - Toutes les cartes du montage (tableau de 5 cartes, null si vide)
+     * @param {object} tokens - Jetons accumulés {drama: number, comedy: number}
+     * @returns {number} - Nombre d'étoiles d'effet calculées
+     */
+    function calculateEffectStars(card, position, allCards, tokens) {
+      if (!card || !card.effectText) return 0;
+
+      const effect = card.effectText;
+      let stars = 0;
+
+      // Parser l'effet ligne par ligne (séparé par des virgules)
+      const effectParts = effect.split(',').map(e => e.trim());
+
+      effectParts.forEach(part => {
+        stars += evaluateEffectPart(part, card, position, allCards, tokens);
+      });
+
+      return stars;
+    }
+
+    /**
+     * Évalue une partie d'effet individuelle
+     */
+    function evaluateEffectPart(effectText, currentCard, position, allCards, tokens) {
+      const text = effectText.toLowerCase();
+      let stars = 0;
+
+      // Gestion des jetons : on ne compte pas les "+1 jeton" comme des étoiles
+      if (text.includes('+1 jeton')) {
+        return 0;
+      }
+
+      // VALEUR FIXE : ⭐⭐⭐⭐⭐ (5 étoiles fixes)
+      const fixedStarsMatch = effectText.match(/⭐/g);
+      if (fixedStarsMatch && !text.includes('par') && !text.includes('si')) {
+        return fixedStarsMatch.length;
+      }
+
+      // COMPTAGE PAR GENRE
+      // "⭐ par carte 🟦" ou "⭐ par carte 🟦 visible"
+      if (text.includes('par carte 🟦')) {
+        const count = countCards(allCards, 'drama', position, text);
+        const multiplier = getStarMultiplier(effectText);
+        stars += count * multiplier;
+      }
+
+      // "⭐ par carte 🟧"
+      else if (text.includes('par carte 🟧')) {
+        const count = countCards(allCards, 'comedy', position, text);
+        const multiplier = getStarMultiplier(effectText);
+        stars += count * multiplier;
+      }
+
+      // "⭐ par carte visible" (sans genre spécifique)
+      else if (text.includes('par carte visible')) {
+        const count = countAllCards(allCards, position, 'visible');
+        const multiplier = getStarMultiplier(effectText);
+        stars += count * multiplier;
+      }
+
+      // COMPTAGE PAR SYMBOLE DANS LE NOM
+      // "⭐ par ☠️"
+      if (text.includes('par ☠️')) {
+        const count = countCardsWithSymbol(allCards, '☠️');
+        const multiplier = getStarMultiplier(effectText);
+        stars += count * multiplier;
+      }
+
+      // "⭐ par 🤡"
+      if (text.includes('par 🤡')) {
+        const count = countCardsWithSymbol(allCards, '🤡');
+        const multiplier = getStarMultiplier(effectText);
+        stars += count * multiplier;
+      }
+
+      // "⭐ par 💘"
+      if (text.includes('par 💘')) {
+        const count = countCardsWithSymbol(allCards, '💘');
+        const multiplier = getStarMultiplier(effectText);
+        stars += count * multiplier;
+      }
+
+      // JETONS
+      // "⭐ par jeton 🟦"
+      if (text.includes('par jeton 🟦')) {
+        const multiplier = getStarMultiplier(effectText);
+        stars += (tokens.drama || 0) * multiplier;
+      }
+
+      // "⭐ par jeton 🟧"
+      if (text.includes('par jeton 🟧')) {
+        const multiplier = getStarMultiplier(effectText);
+        stars += (tokens.comedy || 0) * multiplier;
+      }
+
+      // CONDITIONS
+      // "⭐ si aucun ☠️"
+      if (text.includes('si aucun ☠️')) {
+        const hasSkull = allCards.some(c => c && c.name.includes('☠️'));
+        if (!hasSkull) {
+          const multiplier = getStarMultiplier(effectText);
+          stars += multiplier;
+        }
+      }
+
+      // "⭐ si seule carte 🟦"
+      if (text.includes('si seule carte 🟦')) {
+        const dramaCount = countCards(allCards, 'drama', position, '');
+        if (dramaCount === 1) {
+          const multiplier = getStarMultiplier(effectText);
+          stars += multiplier;
+        }
+      }
+
+      return stars;
+    }
+
+    /**
+     * Compte toutes les cartes selon les critères (sans filtrage par genre)
+     */
+    function countAllCards(allCards, position, modifier) {
+      let count = 0;
+
+      allCards.forEach((card, idx) => {
+        if (!card) return;
+
+        // "visible" : uniquement les cartes avant (révélées de gauche à droite)
+        if (modifier === 'visible' && idx >= position) return;
+
+        // Ne pas compter la carte actuelle si pas de modificateur
+        if (!modifier && idx === position) return;
+
+        count++;
+      });
+
+      return count;
+    }
+
+    /**
+     * Compte le nombre de cartes selon les critères
+     */
+    function countCards(allCards, genre, position, effectText) {
+      let count = 0;
+      const text = effectText.toLowerCase();
+
+      allCards.forEach((card, idx) => {
+        if (!card || card.genre !== genre) return;
+
+        // "suivante" : uniquement les cartes après la position actuelle
+        if (text.includes('suivante') && idx <= position) return;
+
+        // "précédente" : uniquement les cartes avant la position actuelle
+        if (text.includes('précédente') && idx >= position) return;
+
+        // "adjacente" : uniquement les cartes à position-1 ou position+1
+        if (text.includes('adjacente') && Math.abs(idx - position) !== 1) return;
+
+        // "visible" : uniquement les cartes avant (révélées de gauche à droite)
+        if (text.includes('visible') && idx >= position) return;
+
+        // Si aucun modificateur spécifique, exclure la carte actuelle
+        if (!text.includes('suivante') && !text.includes('précédente') &&
+            !text.includes('adjacente') && !text.includes('visible')) {
+          if (idx === position) return; // Ne pas compter la carte elle-même
+        }
+
+        count++;
+      });
+
+      return count;
+    }
+
+    /**
+     * Compte les cartes contenant un symbole dans leur nom
+     */
+    function countCardsWithSymbol(allCards, symbol) {
+      return allCards.filter(card => card && card.name.includes(symbol)).length;
+    }
+
+    /**
+     * Extrait le multiplicateur d'étoiles (⭐⭐ = 2, ⭐⭐⭐ = 3, etc.)
+     */
+    function getStarMultiplier(effectText) {
+      // Cherche le pattern "⭐⭐" ou "–2 ⭐" ou "-1 ⭐"
+
+      // Cas négatif : "–2 ⭐" ou "-1 ⭐"
+      const negMatch = effectText.match(/[–-]\s*(\d+)\s*⭐/);
+      if (negMatch) {
+        return -parseInt(negMatch[1], 10);
+      }
+
+      // Cas positif : compter les ⭐ consécutives au début
+      const starMatch = effectText.match(/^(⭐+)/);
+      if (starMatch) {
+        return starMatch[1].length;
+      }
+
+      return 1; // Par défaut 1 étoile
+    }
+
+    /**
+     * Calcule les jetons accumulés en parcourant les cartes de gauche à droite
+     */
+    function calculateTokens(allCards) {
+      const tokens = { drama: 0, comedy: 0 };
+
+      allCards.forEach(card => {
+        if (!card || !card.effectText) return;
+
+        if (card.effectText.includes('+1 jeton 🟦')) {
+          tokens.drama++;
+        }
+        if (card.effectText.includes('+1 jeton 🟧')) {
+          tokens.comedy++;
+        }
+      });
+
+      return tokens;
+    }
+
+    // ==============================================
+    // FIN DU SYSTÈME DE CALCUL
+    // ==============================================
 
     // Cartes par défaut (tes 24 cartes Drame + Comédie)
     const defaultCards = [
@@ -969,14 +1221,16 @@
         posCell.className = "pos-indicator";
         posCell.dataset.posInfo = String(i);
 
-        // effectStars input
+        // effectStars (readonly, auto-calculated)
         const effectCell = document.createElement("div");
         const effectInput = document.createElement("input");
         effectInput.type = "number";
         effectInput.step = "1";
         effectInput.value = "0";
+        effectInput.readOnly = true;
         effectInput.dataset.effect = String(i);
-        effectInput.addEventListener("input", recalcTotals);
+        effectInput.title = "Calculé automatiquement selon l'effet de la carte";
+        effectInput.style.color = '#22c55e'; // Vert pour indiquer calcul auto
         effectCell.appendChild(effectInput);
 
         // gloryStars (readonly)
@@ -1040,12 +1294,27 @@
       const selects = document.querySelectorAll("select[data-pos]");
       const totalsEl = document.getElementById("totals");
 
+      // 1. Construire le tableau des 5 cartes sélectionnées
+      const selectedCards = [];
+      selects.forEach((sel) => {
+        const cardId = sel.value;
+        if (cardId) {
+          const card = cards.find((c) => c.id === cardId);
+          selectedCards.push(card || null);
+        } else {
+          selectedCards.push(null);
+        }
+      });
+
+      // 2. Calculer les jetons accumulés
+      const tokens = calculateTokens(selectedCards);
+
+      // 3. Calculer pour chaque position
       let totalGlory = 0;
       let totalBox = 0;
       let totalCrit = 0;
 
-      selects.forEach((sel) => {
-        const index = Number(sel.dataset.pos);
+      selects.forEach((sel, index) => {
         const cardId = sel.value;
         const posInfo = document.querySelector(`[data-pos-info="${index}"]`);
         const effectInput = document.querySelector(`input[data-effect="${index}"]`);
@@ -1053,6 +1322,7 @@
         const miscInput = document.querySelector(`input[data-misc="${index}"]`);
 
         let glory = 0;
+        let effectStars = 0;
 
         if (cardId) {
           const card = cards.find((c) => c.id === cardId);
@@ -1060,12 +1330,17 @@
             // update position indicator
             posInfo.innerHTML = renderPositionIndicator(card.positionPattern, index);
 
-            const effectStars = parseInt(effectInput.value || "0", 10) || 0;
+            // CALCUL AUTOMATIQUE des étoiles d'effet
+            effectStars = calculateEffectStars(card, index, selectedCards, tokens);
+            effectInput.value = effectStars;
+            effectInput.style.color = '#22c55e'; // Vert pour montrer que c'est auto-calculé
+
             const posBonus = getPositionBonus(card.positionPattern, index);
             glory = effectStars + posBonus;
           }
         } else {
           posInfo.innerHTML = "";
+          effectInput.value = 0;
         }
 
         gloryInput.value = glory;
@@ -1089,6 +1364,7 @@
         }
       });
 
+      // 4. Afficher les jetons s'il y en a
       totalsEl.innerHTML = "";
 
       const makePill = (icon, label, value) => {
@@ -1107,6 +1383,14 @@
       totalsEl.appendChild(makePill("⭐", "Gloire totale", totalGlory));
       totalsEl.appendChild(makePill("🍿", "Box-office", totalBox));
       totalsEl.appendChild(makePill("🎬", "Critique", totalCrit));
+
+      // Afficher les jetons actifs
+      if (tokens.drama > 0) {
+        totalsEl.appendChild(makePill("🟦", "Jetons Drame", tokens.drama));
+      }
+      if (tokens.comedy > 0) {
+        totalsEl.appendChild(makePill("🟧", "Jetons Comédie", tokens.comedy));
+      }
     }
 
     // --- Tabs ---
